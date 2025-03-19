@@ -27,4 +27,4 @@ def run_tcp_client(server_ip):
 
 if __name__ == "__main__":
     # Replace 'server_ip' with the actual IP address of your server if not localhost
-    run_tcp_client("127.0.0.1")
+    run_tcp_client("142.58.223.1")
