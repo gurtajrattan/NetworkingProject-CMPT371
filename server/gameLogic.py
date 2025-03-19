@@ -1,4 +1,7 @@
 import random
+import threading
+
+##THIS FILE HANDLES THE GAME LOGIC AND THE BACKEND OF THE GAME 
 
 class gameLogic:
     #initialize var of class 
@@ -16,6 +19,8 @@ class gameLogic:
         self.it_count = {}  # Count of how many times each player has been IT
         self.boxSelected = {}
         self.game_over = False  # Flag to track if the game is over
+
+        self.gridLock = threading.Lock()
 
     def initializeGame(self, playerIDs):
         #initialize with players id
@@ -52,20 +57,22 @@ class gameLogic:
 
     def playerSelectBox(self, playerID, row, col):
         #check if box is alr taken taken
-        if (row, col) in self.boxSelected.values():
-            print(f"Box at ({row}, {col}) is already selected. Try again.")
-            return False
-        
-        #otherwise player can have box
-        self.boxSelected[playerID] = (row, col)
-        self.grid[row][col] = playerID
+        with self.gridLock:
+            if (row, col) in self.boxSelected.values():
+                print(f"Box at ({row}, {col}) is already selected. Try again.")
+                return False
+            
+            #otherwise player can have box
+            self.boxSelected[playerID] = (row, col)
+            self.grid[row][col] = playerID
         return True
     
     def itSelectBox(self, row, col):
         #IT Players selection
         #can choose any box;
-        self.grid[row][col] = self.it_player
-        print(f"IT player {self.it_player} has selected box ({row}, {col}).")
+        with self.gridLock:
+            self.grid[row][col] = self.it_player
+            print(f"IT player {self.it_player} has selected box ({row}, {col}).")
         return True
 
     

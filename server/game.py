@@ -1,7 +1,12 @@
 import pygame
 import socket
-from gameLogic import GameLogic
-import bo
+from gameLogic import gameLogic
+
+##THIS FILE HANDLES THE FRONTEND OF THE GAME, TO CREATE GAME WINDOW
+##INCLUDES VISUAL ELEMENTS AND TRANSLATE USER INPUTS LIKE MOUSE CLICKS
+##TO ACTIONS, GAME.PY CAPTURES COORDINATES AND CALLS GAMELOGIC BASED ON THE INPUTS
+
+
 #initialize pygame
 pygame.init()
 
@@ -19,7 +24,7 @@ BLACK = (0, 0, 0)
 GRAY = (169, 169, 169)
 
 #gamelogic is class from gameLogic, makes an instance
-game_logic = GameLogic()
+game_logic = gameLogic()
 
 #connect to the server
 #create new socket, w IPv4, TCP
