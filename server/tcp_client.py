@@ -4,7 +4,7 @@ import time
 # Function to run the TCP client and connect to the server
 def run_tcp_client(server_ip):
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect((server_ip, 53333))
+    client_socket.connect((server_ip, 54321))
     
     # Receive the initial welcome message and current IT player info
     welcome_message = client_socket.recv(1024).decode()
