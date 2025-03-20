@@ -30,8 +30,9 @@ game_logic = gameLogic()
 #create new socket, w IPv4, TCP
 clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 #connect to port
-clientSocket.connect(('142.58.223.1', 53333))
-
+clientSocket.connect(('127.0.0.1', 54321))
+response = clientSocket.recv(1024).decode()
+print("Server's response: ", response)
 
 #function to draw grid
 def drawGrid():

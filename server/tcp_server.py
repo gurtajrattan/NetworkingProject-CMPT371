@@ -7,11 +7,11 @@ def handle_client(client_socket, player_id, players):
     print(f"Player {player_id} connected.")
     
     # Send a waiting message if fewer than 4 players are connected
-    if len(players) < 4:
+    if len(players) < 2:
         client_socket.send(f"Welcome Player {player_id}! Waiting for other players...".encode())
     
     # Once all 4 players are connected, start the game
-    if len(players) == 4:
+    if len(players) == 2:
         assign_it(players)  # Assign IT
         start_game(players)  # Notify all players that the game has started
 
@@ -49,7 +49,7 @@ def start_game(players):
 # Main function to start the server
 def run_tcp_server():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind(('', 53333))  # Bind to port 53333
+    server_socket.bind(('127.0.0.1', 54321))  # Bind to port 53333
     server_socket.listen(5)  # Can handle up to 5 clients at a time
     print("TCP Server listening on port 53333...")
 
