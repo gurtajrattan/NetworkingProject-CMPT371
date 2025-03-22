@@ -5,6 +5,8 @@ import random
 #global dictionary to store players: key = playerID, value = client socket
 players = {}
 
+clients = {}  # Store each player's socket by ID
+
 # Function to handle each client's connection
 def handle_client(client_socket, player_id):
     print(f"Player {player_id} connected.")
@@ -27,7 +29,15 @@ def handle_client(client_socket, player_id):
             if not data:
                 break  # Connection was closed
             print(f"Received from Player {player_id}: {data.decode()}")
-            client_socket.send(f"Player {player_id}, you sent: {data.decode()}".encode())
+            message = f"{player_id}:{data.decode()}"  # Format: "1:0,2"
+            print(f"Broadcasting to all: {message}")
+
+            for pid, sock in clients.items():
+                try:
+                    sock.sendall(message.encode())
+                except:
+                    print(f"Failed to send to Player {pid}")
+
         except ConnectionResetError:
             break  # Handle case where client disconnects abruptly
     client_socket.close()
@@ -63,6 +73,7 @@ def run_tcp_server():
         
         # Start a new thread for the new player
         threading.Thread(target=handle_client, args=(client_socket, player_id)).start()
+        clients[player_id] = client_socket
 
         # Increment player ID for the next player
         player_id += 1
