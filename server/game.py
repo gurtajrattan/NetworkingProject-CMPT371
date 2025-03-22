@@ -16,7 +16,7 @@ CELL_SIZE = 100 #100 pixels
 WINDOW_SIZE = (GRID_SIZE * CELL_SIZE, GRID_SIZE * CELL_SIZE) #sets size of window to display grid
 window = pygame.display.set_mode(WINDOW_SIZE) #makes the pygame window
 
-pygame.display.set_caption("TAG") 
+pygame.display.set_caption("Waiting for players....") 
 
 #colors
 WHITE = (255, 255, 255)
@@ -34,6 +34,19 @@ clientSocket.connect(('127.0.0.1', 54321))
 
 response = clientSocket.recv(1024).decode()
 print("Server's response: ", response)
+
+# If the response is a waiting message, display it on the window and wait for the game to start.
+if "Waiting for players" in response:
+    pygame.display.set_caption("Waiting for players...")
+
+# You can add a loop here to wait for a "Game starting" message before proceeding:
+while "Waiting" in response:
+    response = clientSocket.recv(1024).decode()
+    print("Server's response: ", response)
+    # Optionally, update the window or a text overlay in Pygame to inform the user
+    if "Game starting" in response or "IT" in response:
+        pygame.display.set_caption("TAG")
+        break
 
 #function to draw grid
 def drawGrid():
