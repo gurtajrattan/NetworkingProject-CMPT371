@@ -32,6 +32,8 @@ clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 #connect to port
 clientSocket.connect(('127.0.0.1', 54321))
 
+response = clientSocket.recv(1024).decode()
+print("Server's response: ", response)
 
 #function to draw grid
 def drawGrid():
@@ -59,6 +61,8 @@ def playerSelectionHandler(row, col):
     print("Server's response: ", response)
 
 
+
+
 loop = True
 while loop:
     #clear screen
@@ -70,6 +74,8 @@ while loop:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             loop = False
+        
+
         # if mouse click, translate coordinates
         if event.type == pygame.MOUSEBUTTONDOWN:
             x, y = event.pos
