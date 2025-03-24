@@ -1,7 +1,7 @@
 import pygame
 import socket
 from gameLogic import gameLogic
-
+import select
 ##THIS FILE HANDLES THE FRONTEND OF THE GAME, TO CREATE GAME WINDOW
 ##INCLUDES VISUAL ELEMENTS AND TRANSLATE USER INPUTS LIKE MOUSE CLICKS
 ##TO ACTIONS, GAME.PY CAPTURES COORDINATES AND CALLS GAMELOGIC BASED ON THE INPUTS
@@ -22,9 +22,12 @@ pygame.display.set_caption("TAG")
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 GRAY = (169, 169, 169)
+GREEN = (0, 255, 0)
+
 
 #gamelogic is class from gameLogic, makes an instance
 game_logic = gameLogic()
+has_selected_box = False  # Track if the player already clicked
 
 #connect to the server
 #create new socket, w IPv4, TCP
@@ -32,31 +35,48 @@ clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 #connect to port
 clientSocket.connect(('127.0.0.1', 54321))
 
+response = clientSocket.recv(1024).decode()
+print("Server's response: ", response)
 
 #function to draw grid
 def drawGrid():
-    for row in range (GRID_SIZE):
-        for col in range (GRID_SIZE):
-            #draw box at (r,c) 
-            pygame.draw.rect(window, WHITE,  (col * CELL_SIZE, row * CELL_SIZE, CELL_SIZE, CELL_SIZE), 1)
- 
-            #fill boxes 
-            #keep track of each box's state
-            if game_logic.grid[row][col] == 'X': #selected boxed
-                pygame.draw.rect(window, GRAY, (col * CELL_SIZE, row * CELL_SIZE, CELL_SIZE, CELL_SIZE), 1)
-            elif game_logic.grid[row][col] == 'O': #IT's selection
-                pygame.draw.rect((window, BLACK, (col * CELL_SIZE, row * CELL_SIZE, CELL_SIZE, CELL_SIZE), 1))
+    for row in range(GRID_SIZE):
+        for col in range(GRID_SIZE):
+            rect = (col * CELL_SIZE, row * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+
+            pygame.draw.rect(window, WHITE, rect, 1)  # Draw border
+
+            val = game_logic.grid[row][col]
+            if val == 'locked':  #  This is the key line
+                pygame.draw.rect(window, GREEN, rect)
+            elif val == 'X':
+                pygame.draw.rect(window, GRAY, rect)
+            elif val == 'O':
+                pygame.draw.rect(window, BLACK, rect)
+
 
 
 #function for when player clicks on a box
 def playerSelectionHandler(row, col):
-    #send the coordinates to server
+    global has_selected_box
+
+    if has_selected_box:
+        print("You already selected a box!")
+        return
+
+    if game_logic.grid[row][col] == 'locked':
+        print("Box already taken.")
+        return
+
+    # Send coordinates to the server
     selection = f"{row},{col}"
     clientSocket.sendall(selection.encode())
+    print(f"Sent selection to server: {selection}")
 
-    #wait for server's response 
-    response = clientSocket.recv(1024).decode()
-    print("Server's response: ", response)
+    has_selected_box = True  #  Mark that this player has moved
+
+
+
 
 
 loop = True
@@ -70,6 +90,8 @@ while loop:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             loop = False
+        
+
         # if mouse click, translate coordinates
         if event.type == pygame.MOUSEBUTTONDOWN:
             x, y = event.pos
@@ -78,6 +100,18 @@ while loop:
             row, col = y //CELL_SIZE, x //CELL_SIZE
             print(f"Selected box () ({row}, {col})")
             playerSelectionHandler(row, col)
+
+    readable, _, _ = select.select([clientSocket], [], [], 0)
+    for sock in readable:
+        try:
+            data = sock.recv(1024).decode()
+            if data:
+                print("Received update:", data)
+                player_id, coords = data.split(":")
+                row, col = map(int, coords.split(","))
+                game_logic.grid[row][col] = 'locked'
+        except Exception as e:
+            print("Error receiving update:", e)
 
     pygame.display.update() #update the display 
 
