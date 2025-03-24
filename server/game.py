@@ -23,7 +23,22 @@ WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 GRAY = (169, 169, 169)
 GREEN = (0, 255, 0)
+BLUE = (0, 0, 255)    # Blue
+YELLOW = (255, 255, 0)  # Yellow
+MAGENTA = (255, 0, 255)   # Magenta, 
+RED = (255, 0, 0)
 
+is_IT = False #true if client is IT
+myPlayerID = None
+
+playerColors = {
+    1: GREEN,
+    2: BLUE,
+    3: YELLOW,
+    4: MAGENTA
+}
+
+IT_color = RED
 
 #gamelogic is class from gameLogic, makes an instance
 game_logic = gameLogic()
@@ -60,13 +75,17 @@ def drawGrid():
             pygame.draw.rect(window, WHITE, rect, 1)  # Draw border
 
             val = game_logic.grid[row][col]
-            if val == 'locked':  #  This is the key line
-                pygame.draw.rect(window, GREEN, rect)
-            elif val == 'X':
-                pygame.draw.rect(window, GRAY, rect)
-            elif val == 'O':
-                pygame.draw.rect(window, BLACK, rect)
-
+            if val != '':
+                if is_IT:
+                    #IT's client should only see its own selection
+                    if val == myPlayerID:
+                        pygame.draw.rect(window, IT_color, rect)
+                else:
+                    #Non-IT clients show the selection in color of their playerID
+                    if val in playerColors:
+                        color = playerColors[val]
+                        pygame.draw.rect(window, color, rect)
+           
 
 
 #function for when player clicks on a box
@@ -76,20 +95,29 @@ def playerSelectionHandler(row, col):
     if has_selected_box:
         print("You already selected a box!")
         return
+    
+    if is_IT:
+        # IT uses itSelectBox to update its grid locally
+        if not game_logic.itSelectBox(row, col):
+            return
+        selection_message = f"IT:{row},{col}"
+        # Immediately update your local grid for IT:
+        game_logic.grid[row][col] = myPlayerID
+    else:
+        if not game_logic.playerSelectBox(myPlayerID, row, col):
+            print("Selection invalid. Box already taken.")
+            return
+        selection_message = f"{row},{col}"
+        # Update local grid immediately for non-IT:
+        game_logic.grid[row][col] = myPlayerID
 
-    if game_logic.grid[row][col] == 'locked':
-        print("Box already taken.")
-        return
-
-    # Send coordinates to the server
-    selection = f"{row},{col}"
-    clientSocket.sendall(selection.encode())
-    print(f"Sent selection to server: {selection}")
-
-    has_selected_box = True  #  Mark that this player has moved
-
-
-
+    try:
+        clientSocket.sendall(selection_message.encode())
+        print(f"Sent selection to server: {selection_message}")
+    except Exception as e:
+        print("Error sending selection:", e)
+    
+    has_selected_box = True
 
 
 loop = True
@@ -120,9 +148,23 @@ while loop:
             data = sock.recv(1024).decode()
             if data:
                 print("Received update:", data)
-                player_id, coords = data.split(":")
-                row, col = map(int, coords.split(","))
-                game_logic.grid[row][col] = 'locked'
+
+                parts = data.split(":")
+                if len(parts) >= 2:
+                    pid = int(parts[0])
+                    coords = parts[1]
+                    row, col = map(int, coords.split(","))
+                    # If this client is IT, only update the cell if the update is from IT itself.
+                if is_IT:
+                    if pid == myPlayerID:
+                        game_logic.grid[row][col] = pid
+                    else:
+                        # Ignore updates from other players on IT's client.
+                        continue
+                else:
+                    # For non-IT clients, update only if the cell is empty.
+                    if game_logic.grid[row][col] == '':
+                        game_logic.grid[row][col] = pid
         except Exception as e:
             print("Error receiving update:", e)
 

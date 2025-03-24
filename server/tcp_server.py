@@ -7,20 +7,24 @@ players = {}
 
 clients = {}  # Store each player's socket by ID
 
+itPlayerID = None
+
 # Function to handle each client's connection
 def handle_client(client_socket, player_id):
     print(f"Player {player_id} connected.")
     # Placeholder message to interact with the client (to be expanded later)
     #client_socket.send(f"Welcome Player {player_id}".encode())
     # Send a waiting message if fewer than 2 players are connected
-    if len(players) < 2:
+    if len(players) < 3:
         client_socket.send("Waiting for players to connect...".encode())
     
     # When exactly 2 players are connected, start the game
-    if len(players) == 2:
-        it_player = assign_it()  # Assign IT among the two
-        start_game(it_player)
+    if len(players) == 3:
+        global itPlayerID 
+        itPlayerID = assign_it()
+        start_game(itPlayerID)
     
+
 
     # Wait for the client to send a message (can be used for picking a box in the game)
     while True:
@@ -28,21 +32,31 @@ def handle_client(client_socket, player_id):
             data = client_socket.recv(1024)
             if not data:
                 break  # Connection was closed
-            print(f"Received from Player {player_id}: {data.decode()}")
-            message = f"{player_id}:{data.decode()}"  # Format: "1:0,2"
-            print(f"Broadcasting to all: {message}")
+            decoded = data.decode()
+            print(f"Received from Player {player_id}: {decoded}")
+            message = f"{player_id}:{decoded}"  # Format: "1:0,2"
 
-            for pid, sock in clients.items():
-                try:
-                    sock.sendall(message.encode())
-                except:
-                    print(f"Failed to send to Player {pid}")
-
+# If sender is IT, log the message and do not broadcast it.
+            if player_id == itPlayerID:
+                #print(f"Not broadcasting IT's selection: {decoded}")
+                continue
+            else:
+                # Broadcast to all connected clients
+               for pid, sock in clients.items():
+                    try:
+                        # Skip sending the selection to the IT client
+                        if pid == itPlayerID:
+                            print(f"Not broadcasting IT's selection: {decoded}")
+                            continue
+                        sock.sendall(message.encode())
+                    except Exception as e:
+                        print(f"Failed to send to Player {pid}: {e}")
+                        
         except ConnectionResetError:
-            break  # Handle case where client disconnects abruptly
+            break  # Handle disconnection
+
     client_socket.close()
     print(f"Player {player_id} disconnected.")
-
 
 def assign_it():
     it_player = random.choice(list(players.keys()))
@@ -50,9 +64,9 @@ def assign_it():
     return it_player
 
 def start_game(it_player):
-    start_message = f"Game starting! Player {it_player} is IT."
     for pid, sock in players.items():
-        sock.send(start_message.encode())
+        startMsg = f"Game starting! IT: {it_player}; YourID: {pid}"
+        sock.send(startMsg.encode())
 
 # Main function to start the server
 def run_tcp_server():
@@ -69,11 +83,12 @@ def run_tcp_server():
         print(f"New connection from {addr}")
 
         players[player_id] = client_socket
+        clients[player_id] = client_socket
+
         print(f"Player {player_id} added. Total players: {len(players)}")
         
         # Start a new thread for the new player
         threading.Thread(target=handle_client, args=(client_socket, player_id)).start()
-        clients[player_id] = client_socket
 
         # Increment player ID for the next player
         player_id += 1
