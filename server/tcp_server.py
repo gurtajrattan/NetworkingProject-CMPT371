@@ -12,17 +12,25 @@ itPlayerID = None
 # Function to handle each client's connection
 def handle_client(client_socket, player_id):
     print(f"Player {player_id} connected.")
+    
+    # Send the player ID to the client
+    client_socket.send(f"Your player ID is {player_id}".encode())
+    
     # Placeholder message to interact with the client (to be expanded later)
     #client_socket.send(f"Welcome Player {player_id}".encode())
     # Send a waiting message if fewer than 2 players are connected
     if len(players) < 3:
         client_socket.send("Waiting for players to connect...".encode())
     
+    
+    client_socket.send("Waiting".encode())
+    
     # When exactly 2 players are connected, start the game
     if len(players) == 3:
         global itPlayerID 
         itPlayerID = assign_it()
         start_game(itPlayerID)
+        client_socket.send("Game starting".encode())
     
 
 

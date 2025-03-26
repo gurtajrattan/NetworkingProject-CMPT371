@@ -30,6 +30,7 @@ RED = (255, 0, 0)
 
 is_IT = False #true if client is IT
 myPlayerID = None
+playerID = None  # This will store the player's ID
 
 playerColors = {
     1: GREEN,
@@ -53,18 +54,11 @@ clientSocket.connect(('127.0.0.1', 54321))
 response = clientSocket.recv(1024).decode()
 print("Server's response: ", response)
 
-# If the response is a waiting message, display it on the window and wait for the game to start.
-if "Waiting for players" in response:
-    pygame.display.set_caption("Waiting for players...")
+# The response contains the player ID
+if "Your player ID is" in response:
+    playerID = int(response.split(" ")[4])  # Extract the player ID
 
-# You can add a loop here to wait for a "Game starting" message before proceeding:
-while "Waiting" in response:
-    response = clientSocket.recv(1024).decode()
-    print("Server's response: ", response)
-    # Optionally, update the window or a text overlay in Pygame to inform the user
-    if "Game starting" in response or "IT" in response:
-        pygame.display.set_caption("TAG")
-        break
+
 
 def drawGrid():
     for row in range(GRID_SIZE):
@@ -83,7 +77,7 @@ def drawGrid():
                     # Non-IT: show all players' selections (including own)
                     if val == myPlayerID:
                         
-                        pygame.draw.rect(window, playerColors.get(val, GRAY), rect)
+                        pygame.draw.rect(window, playerColors[playerID], rect)
                     elif val in playerColors:
                         pygame.draw.rect(window, playerColors[val], rect)
 
@@ -132,7 +126,6 @@ while loop:
         if event.type == pygame.QUIT:
             loop = False
         
-
         # if mouse click, translate coordinates
         if event.type == pygame.MOUSEBUTTONDOWN:
             x, y = event.pos
@@ -147,6 +140,23 @@ while loop:
         try:
             data = sock.recv(1024).decode()
             if data:
+                
+                # If the response is a waiting message, display it on the window and wait for the game to start.
+                if "Waiting for players" in data:
+                    pygame.display.set_caption("Waiting for players...")
+
+                # You can add a loop here to wait for a "Game starting" message before proceeding:
+                if playerID < 3:
+                    while "Waiting" in data:
+                        print("Server's response: ", data)
+                        data = clientSocket.recv(1024).decode()
+                        # Optionally, update the window or a text overlay in Pygame to inform the user
+                        if "Game starting" in data or "IT" in data:
+                            pygame.display.set_caption(f"YourID: {str(playerID)}")
+                            break
+                else:
+                    pygame.display.set_caption(f"YourID: {str(playerID)}")
+                    
                 print("Received update:", data)
 
                 parts = data.split(":")
@@ -173,6 +183,3 @@ while loop:
 # Close the socket when done
 clientSocket.close()  
 pygame.quit()  
-
-
-
