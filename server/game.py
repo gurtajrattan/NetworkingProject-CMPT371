@@ -66,58 +66,58 @@ while "Waiting" in response:
         pygame.display.set_caption("TAG")
         break
 
-#function to draw grid
 def drawGrid():
     for row in range(GRID_SIZE):
         for col in range(GRID_SIZE):
             rect = (col * CELL_SIZE, row * CELL_SIZE, CELL_SIZE, CELL_SIZE)
-
             pygame.draw.rect(window, WHITE, rect, 1)  # Draw border
 
             val = game_logic.grid[row][col]
+
             if val != '':
                 if is_IT:
-                    #IT's client should only see its own selection
+                    # IT sees only their own selection
                     if val == myPlayerID:
                         pygame.draw.rect(window, IT_color, rect)
                 else:
-                    #Non-IT clients show the selection in color of their playerID
-                    if val in playerColors:
-                        color = playerColors[val]
-                        pygame.draw.rect(window, color, rect)
+                    # Non-IT: show all players' selections (including own)
+                    if val == myPlayerID:
+                        
+                        pygame.draw.rect(window, playerColors.get(val, GRAY), rect)
+                    elif val in playerColors:
+                        pygame.draw.rect(window, playerColors[val], rect)
+
+
            
 
 
-#function for when player clicks on a box
 def playerSelectionHandler(row, col):
     global has_selected_box
 
     if has_selected_box:
         print("You already selected a box!")
         return
-    
+
     if is_IT:
-        # IT uses itSelectBox to update its grid locally
         if not game_logic.itSelectBox(row, col):
             return
         selection_message = f"IT:{row},{col}"
-        # Immediately update your local grid for IT:
-        game_logic.grid[row][col] = myPlayerID
+        game_logic.grid[row][col] = myPlayerID  # <== IMMEDIATE LOCAL UPDATE
     else:
         if not game_logic.playerSelectBox(myPlayerID, row, col):
             print("Selection invalid. Box already taken.")
             return
         selection_message = f"{row},{col}"
-        # Update local grid immediately for non-IT:
-        game_logic.grid[row][col] = myPlayerID
+        game_logic.grid[row][col] = myPlayerID  # <== IMMEDIATE LOCAL UPDATE
 
     try:
         clientSocket.sendall(selection_message.encode())
         print(f"Sent selection to server: {selection_message}")
     except Exception as e:
         print("Error sending selection:", e)
-    
+
     has_selected_box = True
+
 
 
 loop = True
