@@ -31,6 +31,7 @@ RED = (255, 0, 0)
 is_IT = False #true if client is IT
 myPlayerID = None
 playerID = None  # This will store the player's ID
+IT_id = None
 
 playerColors = {
     1: GREEN,
@@ -152,7 +153,7 @@ while loop:
                         data = clientSocket.recv(1024).decode()
                         # Optionally, update the window or a text overlay in Pygame to inform the user
                         if "Game starting" in data or "IT" in data:
-                            pygame.display.set_caption(f"YourID: {str(playerID)}")
+                            pygame.display.set_caption(f"YourID: {str(playerID)}, IT's id: {str(IT_id)}")
                             break
                 else:
                     pygame.display.set_caption(f"YourID: {str(playerID)}")
