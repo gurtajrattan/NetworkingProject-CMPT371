@@ -32,32 +32,34 @@ class gameLogic:
             print("New round started. Waiting for selections...")
 
     def recordSelection(self, player_id, row, col):
-        """Record a player's selection.
-        For the IT player, record only one (and mark the cell as hidden).
-        For non‑IT players, ensure no two choose the same box. """
         with self.lock:
             if row < 0 or row >= self.gridSize or col < 0 or col >= self.gridSize:
                 return False, "Invalid cell."
-            
+
+            #  Delay IT until all other players have selected
             if player_id == self.it_player:
+                if len(self.selections) < (len(self.players) - 1):
+                    return False, "Please wait for all players to select before making your move."
                 if self.it_selection is not None:
                     return False, "You have already selected a box."
-                else:
-                    self.it_selection = (row, col)
-                    self.grid[row][col] = "IT"
-                    print(f"IT (Player {player_id}) selected box at ({row}, {col}).")
+                self.it_selection = (row, col)
+                self.grid[row][col] = "IT"
+                print(f"IT (Player {player_id}) selected box at ({row}, {col}).")
             else:
                 if player_id in self.selections:
                     return False, "You have already selected a box."
                 if (row, col) in self.selections.values():
-                    return False, "Another player already selected that box."
+                    return False, "Another player already selected that box. Pick a different one."
                 self.selections[player_id] = (row, col)
                 self.grid[row][col] = str(player_id)
                 print(f"Player {player_id} selected box at ({row}, {col}).")
-            
+
             if self.it_selection is not None and len(self.selections) == (len(self.players) - 1):
                 self.round_complete.set()
+
             return True, "Selection recorded."
+
+
 
     def processRound(self):
         
@@ -83,10 +85,12 @@ class gameLogic:
             print(result)
             return result
 
+    # THis is check it does to see if the game is over
     def gameOver(self):
-        """ Check if any player has been IT three times. """
+        # Check if any player has been IT a certain amount of times
         with self.lock:
             for pid, count in self.it_count.items():
+                # To change the number of times someone can be tagged you changet this number 
                 if count >= 3:
                     return pid
             return None

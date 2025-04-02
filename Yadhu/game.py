@@ -50,18 +50,25 @@ def parse_grid_message(message):
     return new_grid
 
 def process_server_message(message):
+    global has_selected_box, running
     if message.startswith("grid:"):
         new_grid = parse_grid_message(message)
         game_logic.grid = new_grid
     elif message.startswith("msg:"):
         info = message[len("msg:"):]
         print(info)
-        # If a new round has started, allow a new selection.
-        if "New round started" in info:
-            global has_selected_box
+        #  Only touch has_selected_box if this is a message
+        if "Selection recorded" in info:
+            has_selected_box = True
+        elif "New round started" in info:
             has_selected_box = False
+        elif "Game over!" in info:
+            print("Game over! Closing client.")
+            running = False
     else:
         print("Server:", message)
+
+
 
 clock = pygame.time.Clock()
 running = True
@@ -80,7 +87,8 @@ while running:
                 selection = f"{row},{col}"
                 clientSocket.sendall((selection + "\n").encode())
                 print("Sent selection:", selection)
-                has_selected_box = True
+                #  Do NOT set has_selected_box yet — wait for server response!
+
     
     # Process messages from the server
     readable, _, _ = select.select([clientSocket], [], [], 0)

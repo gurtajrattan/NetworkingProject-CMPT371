@@ -1,6 +1,7 @@
 import socket
 import threading
 from gameLogic import gameLogic
+import time
 
 GRID_SIZE = 3
 clients = {}         # {player_id: client_socket}
@@ -41,7 +42,11 @@ def handle_client(client_socket, player_id):
                 continue
             success, response = game_logic.recordSelection(player_id, row, col)
             client_socket.sendall(("msg:" + response + "\n").encode())
-            broadcast_to_all(game_logic.get_serialized_grid(revealIT=False))
+
+            # Only broadcast grid if the selection was valid
+            if success:
+                broadcast_to_all(game_logic.get_serialized_grid(revealIT=False))
+
         except Exception as e:
             print(f"Error with Player {player_id}: {e}")
             break
@@ -61,8 +66,22 @@ def game_manager():
         broadcast_to_all("msg:" + result)
         loser = game_logic.gameOver()
         if loser is not None:
-            broadcast_to_all(f"msg:Game over! Player {loser} reached 3 tags and loses the game.")
+            broadcast_to_all(f"msg:Game over! Player {loser} reached 5 tags and loses the game.")
+
+            # Wait a bit so all clients can read the message
+            
+            time.sleep(8)
+
+            # close all client sockets
+            with clients_lock:
+                for pid, sock in clients.items():
+                    try:
+                        sock.close()
+                    except:
+                        pass
+
             break
+
         game_logic.newRound()
         broadcast_to_all(game_logic.get_serialized_grid(revealIT=False))
         broadcast_to_all(f"msg:New round started. IT is Player {game_logic.it_player}")
