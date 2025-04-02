@@ -100,6 +100,7 @@ def run_tcp_server():
         threading.Thread(target=handle_client, args=(client_socket, player_id), daemon=True).start()
         player_id += 1
     game_logic.initializeGame(list(range(1, max_players + 1)))
+    broadcast_to_all(f"msg:Game started! Initial IT is Player {game_logic.it_player}, REMEMBER the IT cannot go until all players have selected a sqaure!")
     game_manager_thread = threading.Thread(target=game_manager, daemon=True)
     game_manager_thread.start()
     game_manager_thread.join()
