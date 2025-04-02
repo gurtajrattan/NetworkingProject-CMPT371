@@ -8,64 +8,36 @@ GRID_SIZE = 3
 CELL_SIZE = 100
 WINDOW_SIZE = (GRID_SIZE * CELL_SIZE, GRID_SIZE * CELL_SIZE)
 window = pygame.display.set_mode(WINDOW_SIZE)
-pygame.display.set_caption("Waiting for players....")
+pygame.display.set_caption("TAG")
 
 # Define colors
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
-GRAY = (169, 169, 169)
 GREEN = (0, 255, 0)
-BLUE = (0, 0, 255)    # Blue
-YELLOW = (255, 255, 0)  # Yellow
-MAGENTA = (255, 0, 255)   # Magenta, 
 RED = (255, 0, 0)
 
-is_IT = False #true if client is IT
-myPlayerID = None
-playerID = None  # This will store the player's ID
-IT_id = None
+# This instance is used only to store the grid state received from the server.
+game_logic = gameLogic(GRID_SIZE)
+has_selected_box = False
 
-playerColors = {
-    1: GREEN,
-    2: BLUE,
-    3: YELLOW,
-    4: MAGENTA
-}
-
-IT_color = RED
-
-#gamelogic is class from gameLogic, makes an instance
-game_logic = gameLogic()
-has_selected_box = False  # Track if the player already clicked
-
-#connect to the server
-#create new socket, w IPv4, TCP
 clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#connect to port
 clientSocket.connect(('127.0.0.1', 54321))
-
-response = clientSocket.recv(1024).decode()
-print("Server's response: ", response)
-
-# The response contains the player ID
-if "Welcome Player" in response:
-    playerID = int(response.split(" ")[2])  # Extract the player ID
 
 def drawGrid():
     for row in range(GRID_SIZE):
         for col in range(GRID_SIZE):
             rect = (col * CELL_SIZE, row * CELL_SIZE, CELL_SIZE, CELL_SIZE)
-            val = game_logic.grid[row][col]
+            cell_val = game_logic.grid[row][col]
             # Fill the cell: if empty, use white; if filled, use GREEN or RED.
-            if val != '':
-                if "IT" in val:
+            if cell_val != '':
+                if "IT" in cell_val:
                     pygame.draw.rect(window, RED, rect)
                 else:
-                    pygame.draw.rect(window, playerColors[playerID], rect)
+                    pygame.draw.rect(window, GREEN, rect)
             else:
-                pygame.draw.rect(window, BLACK, rect)
+                pygame.draw.rect(window, WHITE, rect)
             # Draw the border for the cell
-            pygame.draw.rect(window, WHITE, rect, 1)
+            pygame.draw.rect(window, BLACK, rect, 1)
 
 def parse_grid_message(message):
     # Expected format: "grid:cell,cell,cell|cell,cell,cell|cell,cell,cell"
