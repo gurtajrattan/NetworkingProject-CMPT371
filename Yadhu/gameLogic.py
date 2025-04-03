@@ -36,34 +36,31 @@ class gameLogic:
     
     def recordExternalClick(self, player_id):
         with self.lock:
-            # Initialize click count for the player if not present
+            # Do not allow any more clicks if immunity is already awarded
+            if self.immunity_awarded is not None:
+                return False, "External box is locked. Immunity already acquired for this round."
             if player_id not in self.immunity_clicks:
                 self.immunity_clicks[player_id] = 0
             self.immunity_clicks[player_id] += 1
-            if self.immunity_clicks[player_id] >= 7:
-                # Award immunity only if this player is not the current IT.
+            count = self.immunity_clicks[player_id]
+            if count >= 7:
                 if player_id != self.it_player:
                     self.immunity_awarded = player_id
+                    print(f"Player {player_id} acquired immunity for this round!")  # Server terminal print
                     return True, f"Player {player_id} earned immunity for this round!"
                 else:
                     return False, "IT cannot earn immunity."
-            return True, f"Player {player_id} external click recorded ({self.immunity_clicks[player_id]}/7)."
+            return True, f"Player {player_id} external click recorded ({count}/7)."
 
-    def recordExternalClick(self, player_id):
+
+    def get_serialized_external_box(self):
         with self.lock:
-            # Initialize click count for the player if not present
-            if player_id not in self.immunity_clicks:
-                self.immunity_clicks[player_id] = 0
-            self.immunity_clicks[player_id] += 1
-            if self.immunity_clicks[player_id] >= 7:
-                # Award immunity only if this player is not the current IT.
-                if player_id != self.it_player:
-                    self.immunity_awarded = player_id
-                    return True, f"Player {player_id} earned immunity for this round!"
-                else:
-                    return False, "IT cannot earn immunity."
-            return True, f"Player {player_id} external click recorded ({self.immunity_clicks[player_id]}/7)."
-
+            if self.immunity_awarded is not None:
+                return "external:acquired"
+            parts = []
+            for pid, count in self.immunity_clicks.items():
+                parts.append(f"{pid}:{count}")
+            return "external:" + ",".join(parts)
 
 
     def recordSelection(self, player_id, row, col):

@@ -15,6 +15,9 @@ WINDOW_SIZE = (GRID_SIZE * CELL_SIZE, GRID_SIZE * CELL_SIZE + EXTERNAL_BOX_HEIGH
 window = pygame.display.set_mode(WINDOW_SIZE)
 my_player_id = None
 
+external_clicks = {}       # Dictionary to hold {player_id: click_count}
+external_box_locked = False  # Flag to indicate if the box is locked
+
 # Define colors
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -55,7 +58,7 @@ def parse_grid_message(message):
     return new_grid
 
 def process_server_message(message):
-    global has_selected_box, running, my_player_id
+    global has_selected_box, running, my_player_id, external_clicks, external_box_status
     if message.startswith("Welcome Player"):
         try:
             my_player_id = int(message.split()[-1])
@@ -65,6 +68,20 @@ def process_server_message(message):
     elif message.startswith("grid:"):
         new_grid = parse_grid_message(message)
         game_logic.grid = new_grid
+    elif message.startswith("external:"):
+        data = message[len("external:"):]
+        if data == "acquired":
+            external_box_status = "acquired"
+            external_clicks = {}
+            print("Immunity has been acquired for this round.")
+        else:
+            external_box_status = "active"
+            external_clicks = {}
+            for item in data.split(","):
+                if item:
+                    pid, count = item.split(":")
+                    external_clicks[int(pid)] = int(count)
+            print("External box state updated:", external_clicks)
     elif message.startswith("msg:"):
         info = message[len("msg:"):]
         print(info)
@@ -72,21 +89,24 @@ def process_server_message(message):
             has_selected_box = True
         elif "New round started" in info:
             has_selected_box = False
+            # Reset external box status each round:
+            external_box_status = "active"
+            external_clicks = {}
         elif "Game over!" in info:
             print("Game over! Closing client.")
             running = False
     else:
         print("Server:", message)
 
+
 def drawExternalBox():
-    # Only non-IT players see the external box.
-    if my_player_id is not None and my_player_id != game_logic.it_player:
+    # Only non‑IT players see the external box and only if it's not locked.
+    if my_player_id is not None and my_player_id != game_logic.it_player and not external_box_locked:
         rect = (10, GRID_SIZE * CELL_SIZE + 10, CELL_SIZE, EXTERNAL_BOX_HEIGHT - 20)
         pygame.draw.rect(window, GREEN, rect)
-        # Optionally, display the click progress (if you broadcast it from the server)
-        # Here we simply label it "Immunity Box"
         font = pygame.font.Font(None, 36)
-        text = font.render("Immunity Box", True, WHITE)
+        count = external_clicks.get(my_player_id, 0)
+        text = font.render(f"{count}/7", True, WHITE)
         window.blit(text, (rect[0] + 5, rect[1] + (rect[3] // 2 - 18)))
 
 clock = pygame.time.Clock()
@@ -101,17 +121,22 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         elif event.type == pygame.MOUSEBUTTONDOWN:
-            if not has_selected_box:
-                x, y = event.pos
-                # Assuming external box is drawn at the bottom 100 pixels:
-                if y >= GRID_SIZE * CELL_SIZE:
-                    clientSocket.sendall(("external\n").encode())
-                    print("External box clicked")
-                elif not has_selected_box:
-                    row, col = y // CELL_SIZE, x // CELL_SIZE
-                    selection = f"{row},{col}"
-                    clientSocket.sendall((selection + "\n").encode())
-                    print("Sent selection:", selection)
+            x, y = event.pos
+            # Click in the external box area:
+            if y >= GRID_SIZE * CELL_SIZE:
+                if my_player_id is not None and my_player_id != game_logic.it_player:
+                    if external_box_locked:
+                        print("External box is locked; no further clicks allowed.")
+                    else:
+                        clientSocket.sendall(("external\n").encode())
+                        print("External box clicked")
+                else:
+                    print("IT cannot click the external box.")
+            elif not has_selected_box:
+                row, col = y // CELL_SIZE, x // CELL_SIZE
+                selection = f"{row},{col}"
+                clientSocket.sendall((selection + "\n").encode())
+                print("Sent selection:", selection)
     
     # Process messages from the server
     readable, _, _ = select.select([clientSocket], [], [], 0)
