@@ -9,6 +9,11 @@ CELL_SIZE = 100
 WINDOW_SIZE = (GRID_SIZE * CELL_SIZE, GRID_SIZE * CELL_SIZE)
 window = pygame.display.set_mode(WINDOW_SIZE)
 pygame.display.set_caption("TAG")
+# Add this near your existing window setup:
+EXTERNAL_BOX_HEIGHT = 100  # extra space for the external immunity box
+WINDOW_SIZE = (GRID_SIZE * CELL_SIZE, GRID_SIZE * CELL_SIZE + EXTERNAL_BOX_HEIGHT)
+window = pygame.display.set_mode(WINDOW_SIZE)
+my_player_id = None
 
 # Define colors
 WHITE = (255, 255, 255)
@@ -50,14 +55,19 @@ def parse_grid_message(message):
     return new_grid
 
 def process_server_message(message):
-    global has_selected_box, running
-    if message.startswith("grid:"):
+    global has_selected_box, running, my_player_id
+    if message.startswith("Welcome Player"):
+        try:
+            my_player_id = int(message.split()[-1])
+            print(f"Assigned player ID: {my_player_id}")
+        except Exception as e:
+            print("Error parsing player ID:", e)
+    elif message.startswith("grid:"):
         new_grid = parse_grid_message(message)
         game_logic.grid = new_grid
     elif message.startswith("msg:"):
         info = message[len("msg:"):]
         print(info)
-        #  Only touch has_selected_box if this is a message
         if "Selection recorded" in info:
             has_selected_box = True
         elif "New round started" in info:
@@ -68,7 +78,16 @@ def process_server_message(message):
     else:
         print("Server:", message)
 
-
+def drawExternalBox():
+    # Only non-IT players see the external box.
+    if my_player_id is not None and my_player_id != game_logic.it_player:
+        rect = (10, GRID_SIZE * CELL_SIZE + 10, CELL_SIZE, EXTERNAL_BOX_HEIGHT - 20)
+        pygame.draw.rect(window, GREEN, rect)
+        # Optionally, display the click progress (if you broadcast it from the server)
+        # Here we simply label it "Immunity Box"
+        font = pygame.font.Font(None, 36)
+        text = font.render("Immunity Box", True, WHITE)
+        window.blit(text, (rect[0] + 5, rect[1] + (rect[3] // 2 - 18)))
 
 clock = pygame.time.Clock()
 running = True
@@ -76,19 +95,23 @@ while running:
     # Fill the background with white instead of black.
     window.fill(WHITE)
     drawGrid()
-    
+    drawExternalBox()
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if not has_selected_box:
                 x, y = event.pos
-                row, col = y // CELL_SIZE, x // CELL_SIZE
-                selection = f"{row},{col}"
-                clientSocket.sendall((selection + "\n").encode())
-                print("Sent selection:", selection)
-                #  Do NOT set has_selected_box yet — wait for server response!
-
+                # Assuming external box is drawn at the bottom 100 pixels:
+                if y >= GRID_SIZE * CELL_SIZE:
+                    clientSocket.sendall(("external\n").encode())
+                    print("External box clicked")
+                elif not has_selected_box:
+                    row, col = y // CELL_SIZE, x // CELL_SIZE
+                    selection = f"{row},{col}"
+                    clientSocket.sendall((selection + "\n").encode())
+                    print("Sent selection:", selection)
     
     # Process messages from the server
     readable, _, _ = select.select([clientSocket], [], [], 0)

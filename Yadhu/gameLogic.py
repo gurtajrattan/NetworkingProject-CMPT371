@@ -31,6 +31,41 @@ class gameLogic:
             self.round_complete.clear()
             print("New round started. Waiting for selections...")
 
+            self.immunity_clicks = {}   # {player_id: click_count}
+            self.immunity_awarded = None  # player_id who earned immunity this round
+    
+    def recordExternalClick(self, player_id):
+        with self.lock:
+            # Initialize click count for the player if not present
+            if player_id not in self.immunity_clicks:
+                self.immunity_clicks[player_id] = 0
+            self.immunity_clicks[player_id] += 1
+            if self.immunity_clicks[player_id] >= 7:
+                # Award immunity only if this player is not the current IT.
+                if player_id != self.it_player:
+                    self.immunity_awarded = player_id
+                    return True, f"Player {player_id} earned immunity for this round!"
+                else:
+                    return False, "IT cannot earn immunity."
+            return True, f"Player {player_id} external click recorded ({self.immunity_clicks[player_id]}/7)."
+
+    def recordExternalClick(self, player_id):
+        with self.lock:
+            # Initialize click count for the player if not present
+            if player_id not in self.immunity_clicks:
+                self.immunity_clicks[player_id] = 0
+            self.immunity_clicks[player_id] += 1
+            if self.immunity_clicks[player_id] >= 7:
+                # Award immunity only if this player is not the current IT.
+                if player_id != self.it_player:
+                    self.immunity_awarded = player_id
+                    return True, f"Player {player_id} earned immunity for this round!"
+                else:
+                    return False, "IT cannot earn immunity."
+            return True, f"Player {player_id} external click recorded ({self.immunity_clicks[player_id]}/7)."
+
+
+
     def recordSelection(self, player_id, row, col):
         with self.lock:
             if row < 0 or row >= self.gridSize or col < 0 or col >= self.gridSize:
@@ -65,7 +100,6 @@ class gameLogic:
         
         """ Once all selections have been received, reveal IT's selection and check if any non‑IT
         player picked the same box. Update IT count and assign new IT if needed. """
-        
         self.round_complete.wait()
         with self.lock:
             it_row, it_col = self.it_selection
@@ -75,16 +109,21 @@ class gameLogic:
                     tagged = pid
                     break
             if tagged is not None:
-                self.it_count[tagged] += 1
-                result = f"Player {tagged} was tagged and becomes IT! (Tag count: {self.it_count[tagged]})"
-                self.grid[it_row][it_col] = f"IT({tagged})"
-                self.it_player = tagged
+                # If the tagged player has immunity, ignore the tag.
+                if self.immunity_awarded == tagged:
+                    result = f"Player {tagged} was tagged but is immune. IT remains Player {self.it_player}."
+                    self.grid[it_row][it_col] = f"IT({self.it_player})"
+                else:
+                    self.it_count[tagged] += 1
+                    result = f"Player {tagged} was tagged and becomes IT! (Tag count: {self.it_count[tagged]})"
+                    self.grid[it_row][it_col] = f"IT({tagged})"
+                    self.it_player = tagged
             else:
                 result = f"No one was tagged. Player {self.it_player} remains IT."
                 self.grid[it_row][it_col] = f"IT({self.it_player})"
             print(result)
             return result
-
+    
     # THis is check it does to see if the game is over
     def gameOver(self):
         # Check if any player has been IT a certain amount of times

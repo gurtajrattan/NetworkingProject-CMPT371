@@ -29,27 +29,30 @@ def handle_client(client_socket, player_id):
         print("Error sending initial message to Player", player_id, e)
 
     while True:
-        try:
-            data = client_socket.recv(1024)
-            if not data:
-                break
-            message = data.decode().strip()
-            print(f"Received from Player {player_id}: {message}")
-            try:
-                row, col = map(int, message.split(","))
-            except:
-                client_socket.sendall("msg:Invalid selection format.\n".encode())
-                continue
-            success, response = game_logic.recordSelection(player_id, row, col)
-            client_socket.sendall(("msg:" + response + "\n").encode())
-
-            # Only broadcast grid if the selection was valid
-            if success:
-                broadcast_to_all(game_logic.get_serialized_grid(revealIT=False))
-
-        except Exception as e:
-            print(f"Error with Player {player_id}: {e}")
+        data = client_socket.recv(1024)
+        if not data:
             break
+        message = data.decode().strip()
+        print(f"Received from Player {player_id}: {message}")
+        if message == "external":
+            success, response = game_logic.recordExternalClick(player_id)
+            client_socket.sendall(("msg:" + response + "\n").encode())
+            # Optionally, broadcast the current external box state:
+            broadcast_to_all(game_logic.get_serialized_external_box())
+            continue
+        # Otherwise, assume grid click and process as usual:
+        try:
+            row, col = map(int, message.split(","))
+        except:
+            client_socket.sendall("msg:Invalid selection format.\n".encode())
+            continue
+        success, response = game_logic.recordSelection(player_id, row, col)
+        client_socket.sendall(("msg:" + response + "\n").encode())
+        
+        if success:
+            broadcast_to_all(game_logic.get_serialized_grid(revealIT=False))
+        
+        
 
     client_socket.close()
     print(f"Player {player_id} disconnected.")
