@@ -31,7 +31,8 @@ has_selected_box = False
 clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 clientSocket.connect(('127.0.0.1', 54321))
 
-def drawGrid():
+def drawGrid():   
+    pygame.display.set_caption(f"Player ID: {my_player_id}    IT ID: {game_logic.it_player}")
     for row in range(GRID_SIZE):
         for col in range(GRID_SIZE):
             rect = (col * CELL_SIZE, row * CELL_SIZE, CELL_SIZE, CELL_SIZE)
@@ -95,6 +96,8 @@ def process_server_message(message):
         elif "Game over!" in info:
             print("Game over! Closing client.")
             running = False
+    elif message.startswith("IT"):
+        game_logic.it_player = int(message.split()[-1])
     else:
         print("Server:", message)
 
@@ -115,8 +118,9 @@ while running:
     # Fill the background with white instead of black.
     window.fill(WHITE)
     drawGrid()
-    drawExternalBox()
-
+    if my_player_id is not game_logic.it_player: 
+        drawExternalBox()
+    
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False

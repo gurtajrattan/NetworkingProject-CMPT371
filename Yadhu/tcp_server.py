@@ -88,6 +88,7 @@ def game_manager():
         game_logic.newRound()
         broadcast_to_all(game_logic.get_serialized_grid(revealIT=False))
         broadcast_to_all(f"msg:New round started. IT is Player {game_logic.it_player}")
+        broadcast_to_all(f"IT {game_logic.it_player}")
 
 def run_tcp_server():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -104,6 +105,7 @@ def run_tcp_server():
         player_id += 1
     game_logic.initializeGame(list(range(1, max_players + 1)))
     broadcast_to_all(f"msg:Game started! Initial IT is Player {game_logic.it_player}, REMEMBER the IT cannot go until all players have selected a sqaure!")
+    broadcast_to_all(f"IT {game_logic.it_player}")
     game_manager_thread = threading.Thread(target=game_manager, daemon=True)
     game_manager_thread.start()
     game_manager_thread.join()
