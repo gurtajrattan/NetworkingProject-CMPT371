@@ -14,7 +14,7 @@ class gameLogic:
         self.round_complete = threading.Event()  # Signals that all selections have been made
 
     def initializeGame(self, playerIDs):
-        #Initialize players, set IT counts, and randomly choose the first IT.
+        # Initialize players, set IT counts, and randomly choose the first IT.
         self.players = playerIDs
         for pid in playerIDs:
             self.it_count[pid] = 0
@@ -23,7 +23,7 @@ class gameLogic:
         self.newRound()
 
     def newRound(self):
-        #Reset grid and selections for a new round.
+        # Reset grid and selections for a new round.
         with self.lock:
             self.grid = [['' for _ in range(self.gridSize)] for _ in range(self.gridSize)]
             self.selections = {}
@@ -36,7 +36,7 @@ class gameLogic:
     
     def recordExternalClick(self, player_id):
         with self.lock:
-            # Do not allow any more clicks if immunity is already awarded
+            # Do not allow any more clicks if immunity is already awarded.
             if self.immunity_awarded is not None:
                 return False, "External box is locked. Immunity already acquired for this round."
             if player_id not in self.immunity_clicks:
@@ -68,7 +68,7 @@ class gameLogic:
             if row < 0 or row >= self.gridSize or col < 0 or col >= self.gridSize:
                 return False, "Invalid cell."
 
-            #  Delay IT until all other players have selected
+            # Delay IT until all other players have selected.
             if player_id == self.it_player:
                 if len(self.selections) < (len(self.players) - 1):
                     return False, "Please wait for all players to select before making your move."
@@ -121,12 +121,12 @@ class gameLogic:
             print(result)
             return result
     
-    # THis is check it does to see if the game is over
+    # This is check it does to see if the game is over.
     def gameOver(self):
-        # Check if any player has been IT a certain amount of times
+        # Check if any player has been IT a certain amount of times.
         with self.lock:
             for pid, count in self.it_count.items():
-                # To change the number of times someone can be tagged you changet this number 
+                # To change the number of times someone can be tagged you change this number. 
                 if count >= 3:
                     return pid
             return None

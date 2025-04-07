@@ -18,7 +18,7 @@ my_player_id = None
 external_clicks = {}       # Dictionary to hold {player_id: click_count}
 external_box_locked = False  # Flag to indicate if the box is locked
 
-# Define colors
+# Define colors.
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 GREEN = (0, 255, 0)
@@ -142,7 +142,7 @@ while running:
                 clientSocket.sendall((selection + "\n").encode())
                 print("Sent selection:", selection)
     
-    # Process messages from the server
+    # Process messages from the server.
     readable, _, _ = select.select([clientSocket], [], [], 0)
     for sock in readable:
         try:

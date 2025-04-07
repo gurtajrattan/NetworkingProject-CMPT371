@@ -10,7 +10,7 @@ game_logic = gameLogic(GRID_SIZE)
 max_players = 4      # Supports 4 players
 
 def broadcast_to_all(message):
-    #Send a message to all connected clients.
+    # Send a message to all connected clients.
     with clients_lock:
         for pid, sock in clients.items():
             try:
@@ -19,7 +19,7 @@ def broadcast_to_all(message):
                 print(f"Failed to send message to Player {pid}: {e}")
 
 def handle_client(client_socket, player_id):
-    #Handle incoming messages from a client.
+    # Handle incoming messages from a client.
     print(f"Player {player_id} connected.")
     try:
         welcome = f"Welcome Player {player_id}"
@@ -61,7 +61,7 @@ def handle_client(client_socket, player_id):
             del clients[player_id]
 
 def game_manager():
-    #Main loop for processing rounds and broadcasting results.
+    # Main loop for processing rounds and broadcasting results.
     while True:
         game_logic.round_complete.wait()
         result = game_logic.processRound()
@@ -69,13 +69,13 @@ def game_manager():
         broadcast_to_all("msg:" + result)
         loser = game_logic.gameOver()
         if loser is not None:
-            broadcast_to_all(f"msg:Game over! Player {loser} reached 5 tags and loses the game.")
+            broadcast_to_all(f"msg:Game over! Player {loser} reached 3 tags and loses the game.")
 
-            # Wait a bit so all clients can read the message
+            # Wait a bit so all clients can read the message.
             
             time.sleep(8)
 
-            # close all client sockets
+            # Close all client sockets when game ends.
             with clients_lock:
                 for pid, sock in clients.items():
                     try:
