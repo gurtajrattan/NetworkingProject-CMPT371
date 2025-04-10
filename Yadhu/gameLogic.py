@@ -2,6 +2,7 @@ import random
 import threading
 
 class gameLogic:
+    # Initial game state
     def __init__(self, gridSize=3):
         self.gridSize = gridSize
         self.players = []             # List of player IDs (integers)
@@ -34,6 +35,7 @@ class gameLogic:
             self.immunity_clicks = {}   # {player_id: click_count}
             self.immunity_awarded = None  # player_id who earned immunity this round
     
+    """ Handles non-IT player clicking external box and selection of who gets external box. """
     def recordExternalClick(self, player_id):
         with self.lock:
             # Do not allow any more clicks if immunity is already awarded.
@@ -52,7 +54,7 @@ class gameLogic:
                     return False, "IT cannot earn immunity."
             return True, f"Player {player_id} external click recorded ({count}/7)."
 
-
+    """ Returns state of external box. """
     def get_serialized_external_box(self):
         with self.lock:
             if self.immunity_awarded is not None:
@@ -62,7 +64,8 @@ class gameLogic:
                 parts.append(f"{pid}:{count}")
             return "external:" + ",".join(parts)
 
-
+    """ Handles player grid selection and returns whether if sucessful and unlocks IT selection when all 
+        other players have made their selection. """
     def recordSelection(self, player_id, row, col):
         with self.lock:
             if row < 0 or row >= self.gridSize or col < 0 or col >= self.gridSize:

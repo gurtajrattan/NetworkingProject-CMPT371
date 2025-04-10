@@ -28,6 +28,7 @@ RED = (255, 0, 0)
 game_logic = gameLogic(GRID_SIZE)
 has_selected_box = False
 
+# Opens TCP socket connection to server on port 54321.
 clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 clientSocket.connect(('127.0.0.1', 54321))
 
@@ -48,6 +49,7 @@ def drawGrid():
             # Draw the border for the cell
             pygame.draw.rect(window, BLACK, rect, 1)
 
+""" Updates player's grid when server sends an updated grid. """
 def parse_grid_message(message):
     # Expected format: "grid:cell,cell,cell|cell,cell,cell|cell,cell,cell"
     grid_data = message[len("grid:"):]
@@ -58,6 +60,9 @@ def parse_grid_message(message):
         new_grid.append([cell.strip() for cell in cells])
     return new_grid
 
+""" Parses Server messages by checking start of message.
+    Player will be updated of parsed message in terminal.
+    And the games state is updated on player's when updated. """
 def process_server_message(message):
     global has_selected_box, running, my_player_id, external_clicks, external_box_status
     if message.startswith("Welcome Player"):
@@ -101,7 +106,7 @@ def process_server_message(message):
     else:
         print("Server:", message)
 
-
+""" Draw the external box on player window if the player is not IT. """
 def drawExternalBox():
     # Only non‑IT players see the external box and only if it's not locked.
     if my_player_id is not None and my_player_id != game_logic.it_player and not external_box_locked:
@@ -112,6 +117,8 @@ def drawExternalBox():
         text = font.render(f"{count}/7", True, WHITE)
         window.blit(text, (rect[0] + 5, rect[1] + (rect[3] // 2 - 18)))
 
+""" Player game loop, handles client side visuals, player inputs and sends player inputs to server.
+    It receives server messages and parses them using process_server_message and updates game logic on client-side. """
 clock = pygame.time.Clock()
 running = True
 while running:
